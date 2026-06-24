@@ -1,0 +1,14 @@
+Sources :
+
+1. Revenus et pauvreté des ménages en 2023 - Tous les niveaux géographiques : Insee
+https://www.insee.fr/fr/statistiques/8984752?sommaire=8984758
+Nom du fichier : PauvretéCommune.xlsx
+
+2. Contours des communes
+https://www.data.gouv.fr/datasets/contours-administratifs
+NB : Le fichier avec une précision de 50m a été retenue
+Nom du fichier : Contours communes.geojson
+
+3. Températures du 23/06/2026 à 16h telles qu'observées par le satellite Sentinel-3 de l'observatoire climatique européen Copernicus
+https://browser.dataspace.copernicus.eu/?zoom=6&lat=46.64189&lng=3.49365&themeId=DEFAULT-THEME&visualizationUrl=U2FsdGVkX1%2FGiXkAv%2FTXJPHNucwzqp2leXtRu3JwH9TdxxAxVQtygORZZ7PzCZHOilDdvVk7i1zKGtN%2FCKImEbP8vgXMV3GVIfeGkW8zGkQKA9MD5ucDPTh3GhIf2DpU&datasetId=S3SLSTR_CDAS&fromTime=2026-06-23T00%3A00%3A00.000Z&toTime=2026-06-23T23%3A59%3A59.999Z&layerId=F1_VISUALIZED&demSource3D=%22MAPZEN%22&cloudCoverage=30&dateMode=SINGLE
+Nom du fichier : W_PT-LSASAF-LISBON,SATELLITE,LSA-007_MTG_MTLST_MTG-FD_C_LPMG_20260623165000.nc
