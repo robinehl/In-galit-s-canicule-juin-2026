@@ -1,0 +1,1 @@
+https://api.eumetsat.int/data/download/1.0.0/collections/EO%3AEUM%3ADAT%3A1088/products/W_PT-LSASAF-LISBON%2CSATELLITE%2CLSA-007_MTG_MTLST_MTG-FD_C_LPMG_20260623164000?access_token=30cb4820-e44a-37a5-a9d4-5e08ee61e83a
