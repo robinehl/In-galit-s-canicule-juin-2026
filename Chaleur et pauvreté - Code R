@@ -1,0 +1,122 @@
+# Code utilisé pour R (2026.05.1 Build 225)
+
+library(sf)
+library(terra)
+library(readxl)
+library(dplyr)
+library(exactextractr)
+
+# Importation des données
+
+pauvrete <- read_excel("Données/PauvretéCommune.xlsx")
+nc_file <- "Données/Temp202606231650.nc"
+lst_raster <- rast(nc_file, subds = "LST")
+lst_celsius <- lst_raster - 273.15
+
+# Transformation des coordonnées des observations des températures
+crs_mtg <- "+proj=geos +h=35786400 +lon_0=0 +lat_0=0 +sweep=y +a=6378137 +b=6356752.31424518 +units=m +no_defs"
+crs(lst_celsius) <- crs_mtg
+ext(lst_celsius) <- c(-5568000, 5568000, -5568000, 5568000)
+
+# Mettre de côté les données en dehors de l'Hexagone et de la Corse
+communes_HeCo <- communes %>% 
+    filter(!startsWith(as.character(code), "97")) %>%
+    filter(!startsWith(as.character(code), "98"))
+communes_proj <- st_transform(communes_HeCo, crs_mtg)
+
+# Vu que certaines délimitation de communes ne peuvent pas être traitées par les étapes ultérieures, tenter de corriger les erreurs ou, à défaut, écarter les communes concernées de l'analyse
+communes_proj <- st_make_valid(communes_proj)
+communes_proj <- communes_proj[!st_is_empty(communes_proj), ]
+communes_proj <- communes_proj %>% filter(st_geometry_type(.) %in% c("POLYGON", "MULTIPOLYGON"))
+
+# Eloigner les données en dehors du champ (Hexagone et Corse)
+emprise_france <- ext(vect(communes_proj))
+lst_france <- crop(lst_celsius, emprise_france)
+plot(lst_france, main = "Températures de surface (MTG) sur la France")
+plot(st_geometry(communes_proj), add = TRUE, border = "black", lwd = 0.5)
+
+# Calculer la température moyenne par commune pour la journée du 24/06/26 à 16h
+communes_proj$Temp_Moyenne_C <- exact_extract(lst_france, communes_proj, 'mean')
+
+# Ecarter des communes pour lesquelles la température n’a pas été identifiée (nuages, taille trop petite pour l’échelle des données)
+<- communes_proj %>%
+  filter(!is.na(Temp_Moyenne_C)) %>%
+  st_drop_geometry() # Supprime la colonne spatiale pour un tableau classique
+
+# Croisement avec les données sur la pauvreté et le revenu moyen
+TempPauv <- communes_HeCo_temp %>% left_join(pauvrete %>% select(-nom), by = c("code" = "code"))
+TempPauv <- TempPauv %>% mutate(tauxPauv60 = as.numeric(gsub(",", ".", tauxPauv60)))
+TempPauv <- TempPauv %>% mutate(revenuMédian = as.numeric(gsub(",", ".", revenuMédian)))
+
+# Régression linéaire pour l'ensemble des données
+
+modèle <- lm(tauxPauv60 ~ Temp_Moyenne_C, data = TempPauv)
+summary(modèle)
+ggplot(TempPauv, aes(x = tauxPauv60, y = Temp_Moyenne_C)) +
+    geom_point(alpha = 0.5) +
+    geom_smooth(method = "lm", se = TRUE, color = "blue") +
+    labs(
+        title = "Température moyenne par commune vs Taux de pauvreté",
+        x = "Taux de pauvreté (%)",
+        y = "Température moyenne (°C)"
+    ) +
+    theme_minimal()
+
+# Isoler les données pour l'Île-de-France
+
+TempPauv_IDF <- TempPauv %>%
+  filter(departement %in% c("75", "77", "78", "91", "92", "93", "94", "95"))
+
+# Régression linéaire pour l'Île-de-France
+
+modèle_IDF <- lm(tauxPauv60 ~ Temp_Moyenne_C, data = TempPauv_IDF)
+summary(modèle_IDF)
+
+# Analyse des 100 communes les plus chaudes et les plus froides
+TempPauv_IDF_croissant <- TempPauv_IDF %>%
+    arrange(Temp_Moyenne_C)
+head(TempPauv_IDF_croissant, 100)
+tail(TempPauv_IDF_croissant, 100)
+
+
+
+# Création d'un graphique pour l'Île-de-France
+
+ggplot(TempPauv_IDF, aes(x = tauxPauv60, y = Temp_Moyenne_C)) +
+    geom_point(alpha = 0.5) +
+    geom_smooth(method = "lm", se = TRUE, color = "red") +
+    labs(
+        title = "Température le 23 juin 2026 et taux de pauvreté pour les communes en Île-de-France",
+        x = "Taux de pauvreté (%)",
+        y = "Température moyenne (°C)"
+    ) +
+    theme_minimal()
+
+# Répétition de la procédure pour le département du Nord
+TempPauv_59 <- TempPauv %>%
+  filter(departement %in% c("59"))
+
+# Régression linéaire pour le département du Nord
+
+modèle_59 <- lm(tauxPauv60 ~ Temp_Moyenne_C, data = TempPauv_59)
+summary(modèle_59)
+
+# Analyse des 100 communes les plus chaudes et les plus froides
+TempPauv_59_croissant <- TempPauv_59 %>%
+    arrange(Temp_Moyenne_C)
+head(TempPauv_59_croissant, 100)
+tail(TempPauv_59_croissant, 100)
+
+
+
+# Création d'un graphique pour le département du Nord
+
+ggplot(TempPauv_59, aes(x = tauxPauv60, y = Temp_Moyenne_C)) +
+    geom_point(alpha = 0.5) +
+    geom_smooth(method = "lm", se = TRUE, color = "red") +
+    labs(
+        title = "Température le 23 juin 2026 et taux de pauvreté pour les communes dans le département du Nord",
+        x = "Taux de pauvreté (%)",
+        y = "Température moyenne (°C)"
+    ) +
+    theme_minimal()
